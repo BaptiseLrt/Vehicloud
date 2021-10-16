@@ -1,14 +1,21 @@
+//Arduino Libraries
+#include <Arduino.h>
+
+//ESP32 Libraries
+#include <dummy.h>
+//BLE
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
-#include <dummy.h>
 
-#include <Arduino.h>
-
+//Sensors Libraries
+#include <DHT.h>
+#include <MutichannelGasSensor.h>
 
 void setup() {
   // put your setup code here, to run once:
+  Serial.begin(115200);
 
 }
 
