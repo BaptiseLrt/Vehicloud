@@ -67,8 +67,8 @@ void setup() {
    // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
     GPS.begin(9600);
 
-  pinMode(BUTTON_PIN, INPUT);
-  digitalWrite(BUTTON_PIN,LOW);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+;
   
   // uncomment this line to turn on RMC (recommended minimum) and GGA (fix data) including altitude
   //GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
@@ -86,12 +86,12 @@ void loop() {
   float temp_hum_val[2]={0};
   
   if (button_state==0){
-    if (digitalRead(BUTTON_PIN)==1){
+    if (digitalRead(BUTTON_PIN)==0){
       button_state++;
       int previous_millis=millis();
       delay(50);//Avoid bouncing
       while(millis()-previous_millis<500){
-        if(digitalRead(BUTTON_PIN)==1){
+        if(digitalRead(BUTTON_PIN)==0){
           button_state++;
           delay(500);
         }
