@@ -64,6 +64,7 @@ int button_state=0;
 void setup() {
   
    Serial.begin(115200);//Init UART
+   Serial.println("bordel de merde");
    DHT_sensor.begin();//Init DHT
    Serial.println("Temperature sensor initialized");
    // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
@@ -85,24 +86,15 @@ void setup() {
 
 void loop() {
   int httpResponseCode;
-  float temp_hum_val[2]={0};
+  //float temp_hum_val[2]={0};
   
-  if (button_state==0){
-    if (digitalRead(BUTTON_PIN)==0){
+    if (digitalRead(BUTTON_PIN)==LOW){
       button_state++;
-      int previous_millis=millis();
-      delay(50);//Avoid bouncing
-      while(millis()-previous_millis<500){
-        if(digitalRead(BUTTON_PIN)==0){
-          button_state++;
-          delay(500);
-        }
-      }
+      delay(200);
     }
-  }
 
   if (button_state==1){
-      // if a sentence is received, we can check the checksum, parse it...
+    // if a sentence is received, we can check the checksum, parse it...
     if (GPS.newNMEAreceived()) {
     // a tricky thing here is if we print the NMEA sentence, or data
     // we end up not listening and catching other sentences!
@@ -116,9 +108,11 @@ void loop() {
     if (distance<=0.1){//We take the mean of the values during 100 meters
         int sensorValue = analogRead(A0);
         gaz_value.UpdateMoyenne((float)sensorValue/1024);
-      if (!DHT_sensor.readTempAndHumidity(temp_hum_val)){
-        temp_value.UpdateMoyenne(temp_hum_val[0]);
-        hum_value.UpdateMoyenne(temp_hum_val[1]);
+      if (!DHT_sensor.readHumidity()){
+        hum_value.UpdateMoyenne(DHT_sensor.readHumidity());
+      }
+      if (!DHT_sensor.readTemperature()){
+        temp_value.UpdateMoyenne(DHT_sensor.readTemperature());
       }
     }
     else if(distance>0.1){ //After 100 meter, we store data (we could/should store it in a flash/eeprom but it is not necessary for our prototype)
@@ -133,7 +127,7 @@ void loop() {
     }
   }
 
-  if (button_state==2){ //Double tap
+  if (button_state==2){
   // Connexion to WIFI
   WiFi.begin(ssid, wifipass);
   Serial.println("Connecting");
@@ -145,7 +139,7 @@ void loop() {
   Serial.println("");
   Serial.print("Connected to WiFi network with IP Address: ");
   Serial.println(WiFi.localIP());
-  }
+  
      //ALWAYS check connexion status
    if(WiFi.status()== WL_CONNECTED){
     HTTPClient http;
@@ -161,7 +155,7 @@ void loop() {
     // Create the Request body and send it with information of Temperature, Gas, humidity, localisation and time 
     httpResponseCode = http.POST("{ \"m2m:cin\" : { \"con\" : \"<obj> <str name='lat' val='"+String(latitude_values[i])+"'/><str name='long' val='"+String(longitude_values[i])+"'/><str name='gas' val='"+String(gas_values[i])+"'/> <str name='temp' val='"+String(temperature_values[i])+"'/><str name='hum' val='"+String(humidity_values[i])+"'/><str name='hour' val='"+String(hour_values[i])+"'/><str name='minute' val='"+String(minute_values[i])+"'/></obj>\" } }");
     Serial.print("HTTP Sending :");
-    Serial.println("{ \"m2m:cin\" : { \"con\" : \"<obj> <str name='GAZ' val='"+String(temp_hum_val[0])+"'/> </obj>\" } }");
+    Serial.println("{ \"m2m:cin\" : { \"con\" : \"<obj> <str name='GAZ' val='"+String(DHT_sensor.readTemperature())+"'/> </obj>\" } }");
     Serial.print("HTTP Response code: ");
     Serial.println(httpResponseCode);
     if(httpResponseCode ==-1){  Serial.print("SERVER UNREACHABLE  !!");}
@@ -173,5 +167,6 @@ void loop() {
   else {
        Serial.println("WiFi Disconnected");
        button_state=0;
+  }
   }
 }

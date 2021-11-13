@@ -5,7 +5,7 @@ const char* ssid="Cognock";
 const char* wifipass= "lacognockestrondepourceuxquilaiment";
 
 
-const String serverName = "http://192.168.1.128:8282/~/mn-cse/mn-name/";
+const String serverName = "http://192.168.1.128:8282/~/mn-cse/mn-name-vehicloud/";
 
 // information in con
 const String Category =  "PPM, Luminosité et Humidité";
