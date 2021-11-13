@@ -31,8 +31,8 @@
 #include "calcul_moyenne.h"
 
 #define DHTTYPE DHT11 //Our sensor is the DHT11 
-#define DHTPIN D5 //Our DHT sensor is connected on pin D5
-#define BUTTON_PIN D3
+#define DHTPIN 14 //Our DHT sensor is connected on pin D5
+#define BUTTON_PIN 12 //Our button is connected on ping D6
 
 #define MAX_DATA 200
 /*
@@ -64,9 +64,12 @@ void setup() {
    Serial.begin(115200);//Init UART
    DHT_sensor.begin();//Init DHT
    Serial.println("Temperature sensor initialized");
-  // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
-  GPS.begin(9600);
+   // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
+    GPS.begin(9600);
 
+  pinMode(BUTTON_PIN, INPUT);
+  digitalWrite(BUTTON_PIN,LOW);
+  
   // uncomment this line to turn on RMC (recommended minimum) and GGA (fix data) including altitude
   //GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
   
@@ -86,16 +89,26 @@ void loop() {
     if (digitalRead(BUTTON_PIN)==1){
       button_state++;
       int previous_millis=millis();
+      delay(50);//Avoid bouncing
       while(millis()-previous_millis<500){
         if(digitalRead(BUTTON_PIN)==1){
           button_state++;
+          delay(500);
         }
       }
     }
   }
 
   if (button_state==1){
-    
+      // if a sentence is received, we can check the checksum, parse it...
+    if (GPS.newNMEAreceived()) {
+    // a tricky thing here is if we print the NMEA sentence, or data
+    // we end up not listening and catching other sentences!
+    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
+    //Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
+    if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+      return;  // we can fail to parse a sentence in which case we should just wait for another
+    }
     //Calculate distance traveled
     float distance=acos(sin(radians(latitude_values[sample_number]))*sin(radians(GPS.latitudeDegrees))+cos(radians(latitude_values[sample_number]))*cos(radians(GPS.latitudeDegrees))*cos(longitude_values[sample_number]-GPS.longitudeDegrees))*6371;
     if (distance<=0.1){//We take the mean of the values during 100 meters
@@ -139,12 +152,12 @@ void loop() {
     // Your Domain name with URL path or IP address with path
     http.begin(my_wificlient, serverName+"ESP-1"+"/DATA");
   
-    // If you need an HTTP request with a content type: application/json, use the following:
+    // If you need an HTTP request with a content type: application/json, use the following: 
     http.addHeader("X-M2M-Origin", "admin:admin");
-    http.addHeader("Content-Type", "application/json;ty=4");
+    http.addHeader("Content-Type", "application/json;ty=4"); //Create a contentInstance
 
-    // Create the Request body and send it with information of Temperature and Gas 
-    httpResponseCode = http.POST("{ \"m2m:cin\" : { \"con\" : \"<obj> <str name='temp' val='"+String(latitude_values[i])+"'/><str name='temp' val='"+String(longitude_values[i])+"'/><str name='temp' val='"+String(gas_values[i])+"'/> <str name='temp' val='"+String(temperature_values[i])+"'/><str name='temp' val='"+String(humidity_values[i])+"'/></obj>\" } }");
+    // Create the Request body and send it with information of Temperature, Gas, humidity, localisation and time 
+    httpResponseCode = http.POST("{ \"m2m:cin\" : { \"con\" : \"<obj> <str name='lat' val='"+String(latitude_values[i])+"'/><str name='long' val='"+String(longitude_values[i])+"'/><str name='gas' val='"+String(gas_values[i])+"'/> <str name='temp' val='"+String(temperature_values[i])+"'/><str name='hum' val='"+String(humidity_values[i])+"'/><str name='hour' val='"+String(hour_values[i])+"'/><str name='minute' val='"+String(minute_values[i])+"'/></obj>\" } }");
     Serial.print("HTTP Sending :");
     Serial.println("{ \"m2m:cin\" : { \"con\" : \"<obj> <str name='GAZ' val='"+String(temp_hum_val[0])+"'/> </obj>\" } }");
     Serial.print("HTTP Response code: ");
