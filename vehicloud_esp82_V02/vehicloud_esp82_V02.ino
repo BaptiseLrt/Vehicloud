@@ -146,7 +146,7 @@ void loop() {
 
     for (int i=0; i<sample_number; i++){
     // Your Domain name with URL path or IP address with path
-    http.begin(my_wificlient, serverName+"ESP-1"+"/DATA");
+    http.begin(my_wificlient, serverName+"DATA_SENDING"+"/DATA");
   
     // If you need an HTTP request with a content type: application/json, use the following: 
     http.addHeader("X-M2M-Origin", "admin:admin");
