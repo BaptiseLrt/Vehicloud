@@ -23,6 +23,9 @@
 #include <Adafruit_GPS.h>
 #include <Adafruit_PMTK.h>
 
+//Gas Sensor
+#include "Grove_MultichannelGasSensor.h"
+
 ////My Classes 
 #include "calcul_moyenne.h"
 #include "MyBLECallback.h"
@@ -59,7 +62,9 @@ float temperature_values[MAX_DATA];
 float humidity_values[MAX_DATA];
 float longitude_values[MAX_DATA];
 float latitude_values[MAX_DATA];
-float gas_values[MAX_DATA];
+float gas_values1[MAX_DATA];
+float gas_values2[MAX_DATA];
+float gas_values3[MAX_DATA];
 float hour_values[MAX_DATA];
 float minute_values[MAX_DATA];
 
@@ -112,6 +117,10 @@ void setup() {
   delay(1000);
   // Ask for firmware version
   mySerial.println(PMTK_Q_RELEASE);
+
+  //Initializing gas sensor
+  MiCS6814.begin();
+  MiCS6814.calibrate();
 
   //Initializing BLE
     // Create the BLE Device
@@ -194,10 +203,8 @@ void loop() {
     //else if(distance>0.1||(millis()-sample_time>=1000)){ //After 100 meter, we store data (we could/should store it in a flash/eeprom but it is not necessary for our prototype)
     
       if (millis() - timer > 5000) {
-         float distance=acos(sin(radians(latitude_values[sample_number]))*sin(radians(GPS.latitudeDegrees))+cos(radians(latitude_values[sample_number]))*cos(radians(GPS.latitudeDegrees))*cos(longitude_values[sample_number]-GPS.longitudeDegrees))*6371;
-         if (distance>=1){
-          Serial.println("100M parcourus");
-        }
+        float distance=acos(sin(radians(latitude_values[sample_number]))*sin(radians(GPS.latitudeDegrees))+cos(radians(latitude_values[sample_number]))*cos(radians(GPS.latitudeDegrees))*cos(longitude_values[sample_number]-GPS.longitudeDegrees))*6371;
+         
         timer = millis(); // reset the timer
         Serial.print("Latitude:");Serial.println(GPS.latitudeDegrees);
         Serial.print("Longitude:"); Serial.println(GPS.longitudeDegrees);
@@ -207,10 +214,19 @@ void loop() {
         longitude_values[sample_number]=GPS.longitudeDegrees;
         hour_values[sample_number]=GPS.hour;
         minute_values[sample_number]=GPS.minute;
+        
+        gas_values1[sample_number]=MiCS6814.get(CO);
+        Serial.print("gas_values: CO");Serial.println(gas_values1[sample_number]);
+        gas_values2[sample_number]=MiCS6814.get(NO2);
+        Serial.print("gas_values: NO2");Serial.println(gas_values2[sample_number]);
+        gas_values3[sample_number]=MiCS6814.get(NH3);
+        Serial.print("gas_values: NH3");Serial.println(gas_values3[sample_number]);
+        //gaz_value.get_moyenne(); gaz_value.initialize();
+        //temperature_values[sample_number]=
+        //temp_value.get_moyenne(); temp_value.initialize();
+        //humidity_values[sample_number]=
+        //hum_value.get_moyenne();hum_value.initialize();
         sample_number++;
-       //gas_values[sample_number]=gaz_value.get_moyenne(); gaz_value.initialize();
-       //temperature_values[sample_number]=temp_value.get_moyenne(); temp_value.initialize();
-       //humidity_values[sample_number]=hum_value.get_moyenne();hum_value.initialize();
       }
     //}
  }
@@ -221,7 +237,7 @@ void loop() {
     Serial.println("device connected, sending data");
     for (int i=0; i<sample_number;i++){
       Serial.print("Latitude send :");Serial.println(latitude_values[i]);
-      uint16_t Data_To_Send[10]={(uint16_t)((latitude_values[i]*100)), (uint16_t)(longitude_values[i]*100), (uint16_t)(hour_values[i]),(uint16_t)(minute_values[i]),i*100,250,260,270,280,290};
+      uint16_t Data_To_Send[10]={(uint16_t)((latitude_values[i]*100)), (uint16_t)(longitude_values[i]*100), (uint16_t)(hour_values[i]),(uint16_t)(minute_values[i]),(uint16_t)(gas_values1[i]),(uint16_t)(gas_values2[i]),(uint16_t)(gas_values3[i]),270,280,290};
       uint8_t Data_BLE[20];
       tab_to_send(Data_To_Send, Data_BLE);
       Serial.print("Sending sample number: ");Serial.println(i);
@@ -229,6 +245,9 @@ void loop() {
       CharTime->indicate();
       delay(3);
     }
+    uint8_t Data_BLE[20]={0,255,0,255,0,255,0,255,0,255,0,255,0,255,0,255,0,255,0,255};
+    CharTime->setValue(Data_BLE, sizeof(Data_BLE));
+    CharTime->indicate();
     sample_number=0;
   }
   if (!MyCallbacks.deviceIsConnected()&& oldDeviceConnected){
