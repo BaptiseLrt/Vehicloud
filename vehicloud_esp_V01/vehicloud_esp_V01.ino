@@ -87,14 +87,17 @@ void tab_to_send(uint16_t * tab_input, uint8_t * tab_output, int size_in=10){
  
 void setup() {
   
-   Serial.begin(115200);//Init UART
-   //DHT_sensor.begin();//Init DHT
-   Serial.println("Temperature sensor initialized");
+  Serial.begin(115200);//Init UART
+  DHT_sensor.begin();//Init DHT
+  //Serial.println("Temperature sensor initialized");
 
-   delay(5000);
+  //Initializing gas sensor
+  MiCS6814.begin();
+  Serial.println("Calibrating");
+  MiCS6814.calibrate();
+  Serial.println("Calibrated");
 
-
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+   //delay(5000);
   
    // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
   GPS.begin(9600);
@@ -107,7 +110,7 @@ void setup() {
   // the parser doesn't care about other sentences at this time
 
   // Set the update rate
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);   // 1 Hz update rate
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);   // Update every 10 seconds to be sure we get at least 1 update in 20 seconds
   // For the parsing code to work nicely and have time to sort thru the data, and
   // print it out we don't suggest using anything higher than 1 Hz
 
@@ -116,17 +119,13 @@ void setup() {
 
   delay(1000);
   // Ask for firmware version
-  mySerial.println(PMTK_Q_RELEASE);
-
-  //Initializing gas sensor
-  MiCS6814.begin();
-  MiCS6814.calibrate();
+  mySerial.println(PMTK_Q_RELEASE); 
 
   //Initializing BLE
     // Create the BLE Device
-  BLEDevice::init("ESP32");
+  BLEDevice::init("Vehicloud_V01");
 
-  Serial.println("Initializing BLE");
+  //Serial.println("Initializing BLE");
   // Create the BLE Server
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(&MyCallbacks);
@@ -149,15 +148,14 @@ void setup() {
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
-  BLEDevice::startAdvertising();
-  Serial.println("Waiting a client connection to notify...");
+  //Serial.println("Waiting a client connection to notify...");
+  //BLEDevice::startAdvertising();
+
 }
 
 void loop() {
-
- if(!MyCallbacks.deviceIsConnected()){
-  float temp_hum_val[2]={0};
   
+
   //  if (button_state==0){
   //    if (digitalRead(BUTTON_PIN)==0){
   //      button_state++;
@@ -171,26 +169,17 @@ void loop() {
   //      }
   //    }
   //  }
+  
 
+ if(!MyCallbacks.deviceIsConnected()){
+  float temp_hum_val[2]={0};
+  
   //if (button_state==1){
     // if a sentence is received, we can check the checksum, parse it...
     int sample_time =0;
     char c = GPS.read();
-    // if you want to debug, this is a good time to do it!
-    
-    if ((c) && (GPSECHO))
-    Serial.write(c);
-    if (GPS.newNMEAreceived()) {
-     
-    // a tricky thing here is if we print the NMEA sentence, or data
-    // we end up not listening and catching other sentences!
-    
-    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
-    //Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
-    if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
-      return;  // we can fail to parse a sentence in which case we should just wait for another
-    }
-    //Calculate distance traveled
+
+        //Calculate distance traveled
    
 //    if (distance<=0.1){//We take the mean of the values during 100 meters
 //        int sensorValue = analogRead(A0);
@@ -201,31 +190,66 @@ void loop() {
 //      }
 //    }
     //else if(distance>0.1||(millis()-sample_time>=1000)){ //After 100 meter, we store data (we could/should store it in a flash/eeprom but it is not necessary for our prototype)
+
+
     
-      if (millis() - timer > 5000) {
-        float distance=acos(sin(radians(latitude_values[sample_number]))*sin(radians(GPS.latitudeDegrees))+cos(radians(latitude_values[sample_number]))*cos(radians(GPS.latitudeDegrees))*cos(longitude_values[sample_number]-GPS.longitudeDegrees))*6371;
+    // Usefull to debug
+    
+    if ((c) && (GPSECHO));
+    //Serial.write(c);
+    if (GPS.newNMEAreceived()) {
+     
+    // a tricky thing here is if we print the NMEA sentence, or data
+    // we end up not listening and catching other sentences!
+    
+    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
+    if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+      return;  // we can fail to parse a sentence in which case we should just wait for another
+    }
+    
+      if (millis() - timer > 20000) { //We take values every 20 seconds
+        
+       // float distance=acos(sin(radians(latitude_values[sample_number]))*sin(radians(GPS.latitudeDegrees))+cos(radians(latitude_values[sample_number]))*cos(radians(GPS.latitudeDegrees))*cos(longitude_values[sample_number]-GPS.longitudeDegrees))*6371;
          
         timer = millis(); // reset the timer
-        Serial.print("Latitude:");Serial.println(GPS.latitudeDegrees);
-        Serial.print("Longitude:"); Serial.println(GPS.longitudeDegrees);
+        Serial.print("Latitude:");Serial.println(GPS.latitude);
+        Serial.print("Longitude:"); Serial.println(GPS.longitude);
         Serial.print("Hour:"); Serial.println(GPS.hour);
         Serial.print("Minute:"); Serial.println(GPS.minute);
-        latitude_values[sample_number]=GPS.latitudeDegrees;
-        longitude_values[sample_number]=GPS.longitudeDegrees;
+        latitude_values[sample_number]=(GPS.latitude - 100.0f * int(GPS.latitude / 100.0f)) / 60.0f;
+        latitude_values[sample_number]+=(GPS.latitude/100.0f);
+        longitude_values[sample_number]=(GPS.longitude - 100.0f * int(GPS.longitude/100.0f))/60.0f;
+        longitude_values[sample_number]+=(GPS.longitude/100.0f);
+        Serial.print("Longitude:");Serial.println(longitude_values[sample_number]*100.0f);
+        Serial.print("Latitude");Serial.println(latitude_values[sample_number]*100.0f);
         hour_values[sample_number]=GPS.hour;
         minute_values[sample_number]=GPS.minute;
-        
+
         gas_values1[sample_number]=MiCS6814.get(CO);
         Serial.print("gas_values: CO");Serial.println(gas_values1[sample_number]);
         gas_values2[sample_number]=MiCS6814.get(NO2);
         Serial.print("gas_values: NO2");Serial.println(gas_values2[sample_number]);
         gas_values3[sample_number]=MiCS6814.get(NH3);
         Serial.print("gas_values: NH3");Serial.println(gas_values3[sample_number]);
+        if (!DHT.readTempAndHumidity(temp_hum_val)) {
+          temperature_values[sample_number]=temp_hum_val[0];
+          Serial.print("Température : "); Serial.println(temp_hum_val[0]);
+          humidity_values[sample_number]=temp_hum_val[1];
+          Serial.print("Humidity : "); Serial.println(temp_hum_val[1]);
+        }
         //gaz_value.get_moyenne(); gaz_value.initialize();
         //temperature_values[sample_number]=
         //temp_value.get_moyenne(); temp_value.initialize();
         //humidity_values[sample_number]=
         //hum_value.get_moyenne();hum_value.initialize();
+        float distance=acos(sin(radians(latitude_values[sample_number-1]))*sin(radians(latitude_values[sample_number]))+cos(radians(latitude_values[sample_number-1]))*cos(radians(latitude_values[sample_number]))*cos(longitude_values[sample_number-1]-longitude_values[sample_number]))*63710;
+        Serial.print("La distance calculée en metres :");Serial.println(distance);
+        if (distance < 5){
+          BLEDevice::startAdvertising();
+        }
+        else {
+          BLEDevice::stopAdvertising();
+        }
         sample_number++;
       }
     //}
@@ -236,11 +260,11 @@ void loop() {
   if (MyCallbacks.deviceIsConnected()&&sample_number>0){
     Serial.println("device connected, sending data");
     for (int i=0; i<sample_number;i++){
-      Serial.print("Latitude send :");Serial.println(latitude_values[i]);
+      //Serial.print("Latitude send :");Serial.println(latitude_values[i]);
       uint16_t Data_To_Send[10]={(uint16_t)((latitude_values[i]*100)), (uint16_t)(longitude_values[i]*100), (uint16_t)(hour_values[i]),(uint16_t)(minute_values[i]),(uint16_t)(gas_values1[i]),(uint16_t)(gas_values2[i]),(uint16_t)(gas_values3[i]),270,280,290};
       uint8_t Data_BLE[20];
       tab_to_send(Data_To_Send, Data_BLE);
-      Serial.print("Sending sample number: ");Serial.println(i);
+      //Serial.print("Sending sample number: ");Serial.println(i);
       CharTime->setValue(Data_BLE, sizeof(Data_BLE));
       CharTime->indicate();
       delay(3);
@@ -253,7 +277,7 @@ void loop() {
   if (!MyCallbacks.deviceIsConnected()&& oldDeviceConnected){
     delay(500); //give the bluetooth stack the chance to get things ready
     pServer->startAdvertising();
-    Serial.println("Restart advertising");
+    //Serial.println("Restart advertising");
     oldDeviceConnected=MyCallbacks.deviceIsConnected();
   }
   if (MyCallbacks.deviceIsConnected() && !oldDeviceConnected){
