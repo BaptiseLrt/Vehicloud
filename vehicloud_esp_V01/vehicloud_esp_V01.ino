@@ -261,7 +261,7 @@ void loop() {
     Serial.println("device connected, sending data");
     for (int i=0; i<sample_number;i++){
       //Serial.print("Latitude send :");Serial.println(latitude_values[i]);
-      uint16_t Data_To_Send[10]={(uint16_t)((latitude_values[i]*100)), (uint16_t)(longitude_values[i]*100), (uint16_t)(hour_values[i]),(uint16_t)(minute_values[i]),(uint16_t)(gas_values1[i]),(uint16_t)(gas_values2[i]),(uint16_t)(gas_values3[i]),270,280,290};
+      uint16_t Data_To_Send[10]={(uint16_t)((latitude_values[i]*100)), (uint16_t)(longitude_values[i]*100), (uint16_t)(hour_values[i]),(uint16_t)(minute_values[i]),(uint16_t)(temperature_values[i]),(uint16_t)(humidity_values[i]),(uint16_t)(gas_values1[i]),(uint16_t)(gas_values2[i]),(uint16_t)(gas_values3[i]), (uint16_t)(101))};
       uint8_t Data_BLE[20];
       tab_to_send(Data_To_Send, Data_BLE);
       //Serial.print("Sending sample number: ");Serial.println(i);
