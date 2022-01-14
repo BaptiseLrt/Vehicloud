@@ -32,7 +32,7 @@
 
 //Defines
 #define DHTTYPE DHT11 //Our sensor is the DHT11 
-#define DHTPIN 14 //Our DHT sensor is connected on pin D5
+#define DHTPIN 4 //Our DHT sensor is connected on pin D5
 #define BUTTON_PIN 12 //Our button is connected on ping D6
 
 #define MAX_DATA 200
@@ -47,7 +47,7 @@
 /*  
  * Global Variables
  */
-DHT DHT_sensor(DHTPIN, DHTTYPE);
+DHT DHT_sensor(DHTPIN, DHTTYPE, 8000000L);
 SoftwareSerial mySerial(23,5);
 Adafruit_GPS GPS(&mySerial);
 
@@ -89,7 +89,7 @@ void setup() {
   
   Serial.begin(115200);//Init UART
   DHT_sensor.begin();//Init DHT
-  //Serial.println("Temperature sensor initialized");
+  Serial.println("Temperature sensor initialized");
 
   //Initializing gas sensor
   MiCS6814.begin();
@@ -97,7 +97,7 @@ void setup() {
   MiCS6814.calibrate();
   Serial.println("Calibrated");
 
-   //delay(5000);
+   delay(5000);
   
    // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
   GPS.begin(9600);
@@ -212,16 +212,16 @@ void loop() {
        // float distance=acos(sin(radians(latitude_values[sample_number]))*sin(radians(GPS.latitudeDegrees))+cos(radians(latitude_values[sample_number]))*cos(radians(GPS.latitudeDegrees))*cos(longitude_values[sample_number]-GPS.longitudeDegrees))*6371;
          
         timer = millis(); // reset the timer
-        Serial.print("Latitude:");Serial.println(GPS.latitude);
-        Serial.print("Longitude:"); Serial.println(GPS.longitude);
+        Serial.print("Latitude:");Serial.println(GPS.latitudeDegrees*100);
+        Serial.print("Longitude:"); Serial.println(GPS.longitudeDegrees*100);
         Serial.print("Hour:"); Serial.println(GPS.hour);
         Serial.print("Minute:"); Serial.println(GPS.minute);
-        latitude_values[sample_number]=(GPS.latitude - 100.0f * int(GPS.latitude / 100.0f)) / 60.0f;
-        latitude_values[sample_number]+=(GPS.latitude/100.0f);
-        longitude_values[sample_number]=(GPS.longitude - 100.0f * int(GPS.longitude/100.0f))/60.0f;
-        longitude_values[sample_number]+=(GPS.longitude/100.0f);
-        Serial.print("Longitude:");Serial.println(longitude_values[sample_number]*100.0f);
-        Serial.print("Latitude");Serial.println(latitude_values[sample_number]*100.0f);
+        latitude_values[sample_number]=(GPS.latitudeDegrees);
+        //latitude_values[sample_number]+=(GPS.latitude/100.0f);
+        longitude_values[sample_number]=(GPS.longitudeDegrees);
+        //longitude_values[sample_number]+=(GPS.longitude/100.0f);
+        //Serial.print("Longitude:");Serial.println(longitude_values[sample_number]*100.0f);
+        //Serial.print("Latitude");Serial.println(latitude_values[sample_number]*100.0f);
         hour_values[sample_number]=GPS.hour;
         minute_values[sample_number]=GPS.minute;
 
@@ -231,7 +231,7 @@ void loop() {
         Serial.print("gas_values: NO2");Serial.println(gas_values2[sample_number]);
         gas_values3[sample_number]=MiCS6814.get(NH3);
         Serial.print("gas_values: NH3");Serial.println(gas_values3[sample_number]);
-        if (!DHT.readTempAndHumidity(temp_hum_val)) {
+         if (!DHT_sensor.readTempAndHumidity(temp_hum_val)) {
           temperature_values[sample_number]=temp_hum_val[0];
           Serial.print("Température : "); Serial.println(temp_hum_val[0]);
           humidity_values[sample_number]=temp_hum_val[1];
@@ -261,7 +261,7 @@ void loop() {
     Serial.println("device connected, sending data");
     for (int i=0; i<sample_number;i++){
       //Serial.print("Latitude send :");Serial.println(latitude_values[i]);
-      uint16_t Data_To_Send[10]={(uint16_t)((latitude_values[i]*100)), (uint16_t)(longitude_values[i]*100), (uint16_t)(hour_values[i]),(uint16_t)(minute_values[i]),(uint16_t)(temperature_values[i]),(uint16_t)(humidity_values[i]),(uint16_t)(gas_values1[i]),(uint16_t)(gas_values2[i]),(uint16_t)(gas_values3[i]), (uint16_t)(101))};
+      uint16_t Data_To_Send[10]={(uint16_t)(latitude_values[i]*1000), (uint16_t)(longitude_values[i]*1000), (uint16_t)(hour_values[i]),(uint16_t)(minute_values[i]),(uint16_t)(temperature_values[i]),(uint16_t)(humidity_values[i]),(uint16_t)(gas_values1[i]),(uint16_t)(gas_values2[i]),(uint16_t)(gas_values3[i]), (uint16_t)(101)};
       uint8_t Data_BLE[20];
       tab_to_send(Data_To_Send, Data_BLE);
       //Serial.print("Sending sample number: ");Serial.println(i);
