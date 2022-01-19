@@ -5,13 +5,32 @@ import requests
 import json
 import os
 import datetime
+import subprocess
+import time
 
 #Initialize the variables
 receivingData = False
 EOF = ['00','ff','00','ff','00','ff','00','ff','00','ff','00','ff','00','ff','00','ff','00','ff','00','ff','']
 myDate = datetime.date.today()
+listDevicesPath = r"list_devices.txt"
 
-#child1 = pexpect.spawn("./scan_ble.sh")
+if (os.path.isfile(listDevicesPath)):
+    os.remove(listDevicesPath)
+rc = subprocess.call("/home/pi/Vehicloud/raspy/scan_ble.sh")
+time.sleep(5)
+
+
+listDevices = open(listDevicesPath, 'r')
+
+#if (os.path.isfile('listBike.txt')):
+#    os.remove('listBike.txt')
+#for lines in listDevices:
+#    lines.split(" ")
+#    if (lines.find("Vehicloud")):
+#        lines.split(" ")
+#        bikeFile = open('listBike.txt', 'a')
+#        bikeFile.write(lines[0])
+#        bikeFile.close()
 
 # Run gatttool interactively.
 print("Running gatttool...")
@@ -47,19 +66,17 @@ for bike in bikeFile:
     	if(data == EOF):
     	    receiveData = False
     	else:		    
-        	bikeId = int((data[18]+data[19]),16)
-        	time = str(myDate.year) + "-" + "0"+str(myDate.month) + "-" +str(myDate.day) + "T" + str(int((data[4]+data[5]),16)+1) + ":" + str(int((data[6]+data[7]),16))+":00Z"
-        	print(data)
-        	location_lat = str(int((data[0]+data[1]),16)/1000)
-        	location_lon = str(int((data[2]+data[3]),16)/1000)
-        	temperature = str(int((data[8]+ data[9]),16))
-        	humidity = str(int((data[10]+ data[11]),16))
-        	gaz1 = str(int((data[12]+ data[13]),16)/100)
-        	gaz2 = str(int((data[14]+ data[15]),16)/100)
+        	bikeId = int((str(int(data[8],16)) + str(int(data[9],16))),16)
+        	time = str(myDate.year) + "-" + "0"+str(myDate.month) + "-" +str(myDate.day) + "T" + str(int(data[5],16)) + ":" + str(int(data[6],16))+":"+ str(int(data[7],16)) + "Z"
+        	location_lat = str(int(data[0],16)) + str(int(data[1],16))
+        	location_lon = str(int(data[2],16)) + str(int(data[3],16))
+        	temperature = str(int(str(int(data[8],16)) + str(int(data[9],16)))/100)
+        	humidity = str(int(data[10],16)) + str(int(data[11],16))
+        	gaz1 = str(int(data[12],16)) + str(int(data[13],16))
+        	gaz2 = str(int(data[14],16)) + str(int(data[15],16))
         	print(bikeId),print(time),print(location_lat),print(location_lon),print(temperature),
         	print(humidity),print(gaz1),print(gaz2)
-        	json_file = {"bikeId":bikeId, "time": time, "location_lat" : location_lat, "location_lon":location_lon, 
-        	"temperature": temperature, "humidity" : humidity, "gaz1": gaz1, "gaz2": gaz2}
+        	json_file = {"bikeId":bikeId, "time": time, "location_lat" : location_lat, "location_lon":location_lon, "temperature": temperature, "humidity" : humidity, "gaz1": gaz1, "gaz2": gaz2}
         	print("data = "),
         	print(data)
         	print("json = "),

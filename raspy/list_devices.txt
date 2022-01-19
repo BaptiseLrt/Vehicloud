@@ -1,0 +1,17 @@
+LE Scan ...
+30:AE:A4:05:A0:42 Vehicloud_V01
+30:AE:A4:05:A0:42 (unknown)
+7A:47:7C:5F:A8:D5 (unknown)
+7A:47:7C:5F:A8:D5 (unknown)
+0E:CB:14:18:07:8B (unknown)
+5B:49:80:ED:67:D6 (unknown)
+5B:49:80:ED:67:D6 (unknown)
+37:CD:62:04:91:A2 (unknown)
+24:FC:E5:90:38:D9 (unknown)
+24:FC:E5:90:38:D9 [TV] Samsung Q60 Series (49)
+44:27:F3:27:95:12 Mi ColorS 9512
+72:75:15:22:49:A8 (unknown)
+72:75:15:22:49:A8 (unknown)
+CC:A1:CC:7F:52:1C (unknown)
+43:75:04:E0:A9:68 (unknown)
+43:75:04:E0:A9:68 (unknown)
