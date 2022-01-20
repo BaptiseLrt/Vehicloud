@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+	
+	<title>Quick Start - Leaflet</title>
+
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+	<script src="leaflet-heat.js"></script>
+	<script src="jquery-3.6.0.min.js"></script>
+
+	
+</head>
+<body>
+
+
+
+<div id="map" style="width: 1000px; height: 800px;"></div>
+
+<script>
+	var markers=L.layerGroup();
+	var valuestemp=[];
+	var tabtemp=[];
+	var tabhumidity=[];
+	var tabgaz1=[];
+	var tabgaz2=[];
+	var tabmark=[];
+
+    $(document).ready(function(){
+        $.getJSON("data_19janv_1.json", function(data){
+            values=data.values;
+        })
+		.done(function() {
+
+			//Remplissage des tableaux de data
+			for (const element of values){
+				tabtemp.push([element[3],element[4],element[5]]);
+				tabhumidity.push([element[3],element[4],element[6]]);
+				tabgaz1.push([element[3],element[4],element[7]]);
+				tabgaz2.push([element[3],element[4],element[8]]);
+				tabmark.push([element[3],element[4],element[5],element[6],element[7],element[8],element[1]])
+			}
+
+			var map = L.map('map').setView([43.60742764039704, 1.4449328184127805], 17);
+
+			var tiles = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+				maxZoom: 22,
+				attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+					'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+				id: 'mapbox/streets-v11',
+				tileSize: 512,
+				zoomOffset: -1
+			}).addTo(map);
+
+			var heatMapPoints = [];
+
+			var heatlayer = L.heatLayer(tabtemp, {
+				radius: 40,
+				minOpacity : 0.3,
+				blur : 50,
+				maxIntensity : 30,
+				gradient : {0.3: 'blue', 0.55: 'lime', 0.8: 'red'}
+			}).addTo(map);
+
+			var humiditylayer = L.heatLayer(tabhumidity, {
+				radius: 40,
+				minOpacity : 0.3,
+				blur : 50,
+				maxIntensity : 30,
+				gradient : {0.3: 'blue', 0.55: 'lime', 0.8: 'red'}
+			}).addTo(map);
+
+			var gaz1layer = L.heatLayer(tabgaz1, {
+				radius: 40,
+				minOpacity : 0.3,
+				blur : 50,
+				maxIntensity : 30,
+				gradient : {0.3: 'blue', 0.55: 'lime', 0.8: 'red'}
+			}).addTo(map);
+
+			var gaz2layer = L.heatLayer(tabgaz2, {
+				radius: 40,
+				minOpacity : 0.3,
+				blur : 50,
+				maxIntensity : 30,
+				gradient : {0.3: 'blue', 0.55: 'lime', 0.8: 'red'}
+			}).addTo(map);
+
+
+			//Remplissage markers
+			for (const element of tabmark){
+				L.marker([element[0],element[1]]).bindPopup('<br><b>Timestamp :</b> '+element[6] + "</br>"+'<br><b>Temperature :</b> '+element[2] + " °C</br>"+"<br><b>Humidity :</b> "+element[3] + " %</br>" + "<br><b>Gaz1:</b> "+element[4]+ " ppm</br>" + "<br><b>Gaz2:</b> "+element[5]+ " ppm</br>").addTo(markers);
+			}
+
+
+			//Gestion layers
+			var baseLayers = {
+				"Mainmap": tiles
+			};
+
+			var overlays={
+				"Heat":heatlayer,
+				"Humidity": humiditylayer,
+				"Gaz 1": gaz1layer,
+				"Gaz 2": gaz2layer,
+				"Markers":markers
+			};
+
+			L.control.layers(baseLayers, overlays).addTo(map);
+
+
+
+
+  		});
+    });
+
+
+	
+
+
+</script>
+
+
+</body>
+</html>
