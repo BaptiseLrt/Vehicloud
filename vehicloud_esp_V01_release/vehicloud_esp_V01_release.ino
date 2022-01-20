@@ -39,9 +39,8 @@
 
 //BLE Config 
 #define SERVICE_UUID "32a9184d-8ff4-4d7b-8c8d-619dd8cac8c8"
-#define CHAR_GPS_UUID "26567f76-b97e-4664-b9d4-a75ec7129bd7"
-#define CHAR_TIME_UUID "cd4cbd1b-95d6-4295-b0d8-8403145844c2"
-#define CHAR_TEMP_UUID "cd4cbd1b-95d6-4295-b0d8-8403145844c3"
+#define CHAR_DATA_UUID "cd4cbd1b-95d6-4295-b0d8-8403145844c2"
+
 
 #define GPSECHO true
 /*  
@@ -54,7 +53,7 @@ Adafruit_GPS GPS(&mySerial);
 //BLE Classes
 BLEServer* pServer = NULL;
 BLECharacteristic* CharGPS = NULL;
-BLECharacteristic* CharTime = NULL;
+BLECharacteristic* CharData = NULL;
 MyBLEServerCallbacks MyCallbacks;
 bool oldDeviceConnected = false;
 
@@ -86,8 +85,6 @@ void tab_to_send(uint16_t * tab_input, uint8_t * tab_output, int size_in=10){
 }
  
 void setup() {
-  
-  Serial.begin(115200);//Init UART
   DHT_sensor.begin();//Init DHT
 
 
@@ -131,13 +128,11 @@ void setup() {
 
   // Create the BLE Service
   BLEService *pService = pServer->createService(SERVICE_UUID);
-  CharGPS = pService->createCharacteristic(CHAR_GPS_UUID, BLECharacteristic::PROPERTY_READ|BLECharacteristic::PROPERTY_WRITE|BLECharacteristic::PROPERTY_NOTIFY|BLECharacteristic::PROPERTY_INDICATE);
-  CharTime = pService->createCharacteristic(CHAR_TIME_UUID, BLECharacteristic::PROPERTY_READ|BLECharacteristic::PROPERTY_WRITE|BLECharacteristic::PROPERTY_NOTIFY|BLECharacteristic::PROPERTY_INDICATE);
+  CharData = pService->createCharacteristic(CHAR_DATA_UUID, BLECharacteristic::PROPERTY_READ|BLECharacteristic::PROPERTY_WRITE|BLECharacteristic::PROPERTY_NOTIFY|BLECharacteristic::PROPERTY_INDICATE);
 
     // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
   // Create a BLE Descriptor
-  CharGPS->addDescriptor(new BLE2902());
-  CharTime->addDescriptor(new BLE2902());
+  CharData->addDescriptor(new BLE2902());
   
   // Start the service
   pService->start();
@@ -209,7 +204,7 @@ void loop() {
       if (millis() - timer > 20000) { //We take values every 20 seconds
         
        // float distance=acos(sin(radians(latitude_values[sample_number]))*sin(radians(GPS.latitudeDegrees))+cos(radians(latitude_values[sample_number]))*cos(radians(GPS.latitudeDegrees))*cos(longitude_values[sample_number]-GPS.longitudeDegrees))*6371;
-         
+        if (GPS.fix){
         timer = millis(); // reset the timer
         latitude_values[sample_number]=(GPS.latitudeDegrees);
         //latitude_values[sample_number]+=(GPS.latitude/100.0f);
@@ -231,7 +226,13 @@ void loop() {
         else {
           BLEDevice::stopAdvertising();
         }
-        sample_number++;
+        if (sample_number<200){
+          sample_number++;
+        }
+        else {
+          sample_number=100;  
+        }
+        }
       }
     //}
  }
@@ -240,17 +241,17 @@ void loop() {
   // Bluetooh
   if (MyCallbacks.deviceIsConnected()&&sample_number>0){
     for (int i=0; i<sample_number;i++){
-      uint16_t Data_To_Send[10]={(uint16_t)(latitude_values[i]*1000), (uint16_t)(longitude_values[i]*1000), (uint16_t)(hour_values[i]),(uint16_t)(minute_values[i]),(uint16_t)(temperature_values[i]),(uint16_t)(humidity_values[i]),(uint16_t)(gas_values1[i]),(uint16_t)(gas_values2[i]),(uint16_t)(gas_values3[i]), (uint16_t)(101)};
+      uint16_t Data_To_Send[10]={(uint16_t)(latitude_values[i]*1000), (uint16_t)(longitude_values[i]*1000), (uint16_t)(hour_values[i]),(uint16_t)(minute_values[i]),(uint16_t)(temperature_values[i]),(uint16_t)(humidity_values[i]),(uint16_t)(gas_values1[i]*100),(uint16_t)(gas_values2[i]*100),(uint16_t)(gas_values3[i]*100), (uint16_t)(101)};
       uint8_t Data_BLE[20];
       tab_to_send(Data_To_Send, Data_BLE);
       //Serial.print("Sending sample number: ");Serial.println(i);
-      CharTime->setValue(Data_BLE, sizeof(Data_BLE));
-      CharTime->indicate();
-      delay(3);
+      CharData->setValue(Data_BLE, sizeof(Data_BLE));
+      CharData->indicate();
+      delay(10);
     }
     uint8_t Data_BLE[20]={0,255,0,255,0,255,0,255,0,255,0,255,0,255,0,255,0,255,0,255};
-    CharTime->setValue(Data_BLE, sizeof(Data_BLE));
-    CharTime->indicate();
+    CharData->setValue(Data_BLE, sizeof(Data_BLE));
+    CharData->indicate();
     sample_number=0;
   }
   if (!MyCallbacks.deviceIsConnected()&& oldDeviceConnected){

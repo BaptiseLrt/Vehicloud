@@ -149,7 +149,7 @@ void setup() {
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
   //Serial.println("Waiting a client connection to notify...");
-  //BLEDevice::startAdvertising();
+  BLEDevice::startAdvertising();
 
 }
 
@@ -207,7 +207,7 @@ void loop() {
       return;  // we can fail to parse a sentence in which case we should just wait for another
     }
     
-      if (millis() - timer > 20000) { //We take values every 20 seconds
+      if (millis() - timer > 4000) { //We take values every 20 seconds
         
        // float distance=acos(sin(radians(latitude_values[sample_number]))*sin(radians(GPS.latitudeDegrees))+cos(radians(latitude_values[sample_number]))*cos(radians(GPS.latitudeDegrees))*cos(longitude_values[sample_number]-GPS.longitudeDegrees))*6371;
          
@@ -244,12 +244,7 @@ void loop() {
         //hum_value.get_moyenne();hum_value.initialize();
         float distance=acos(sin(radians(latitude_values[sample_number-1]))*sin(radians(latitude_values[sample_number]))+cos(radians(latitude_values[sample_number-1]))*cos(radians(latitude_values[sample_number]))*cos(longitude_values[sample_number-1]-longitude_values[sample_number]))*63710;
         Serial.print("La distance calculée en metres :");Serial.println(distance);
-        if (distance < 5){
-          BLEDevice::startAdvertising();
-        }
-        else {
-          BLEDevice::stopAdvertising();
-        }
+ 
         sample_number++;
       }
     //}
